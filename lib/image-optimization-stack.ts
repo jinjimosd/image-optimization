@@ -228,7 +228,7 @@ export class ImageOptimizationStack extends Stack {
         corsBehavior: {
           accessControlAllowCredentials: false,
           accessControlAllowHeaders: ['*'],
-          accessControlAllowMethods: ['GET'],
+          accessControlAllowMethods: ['GET', 'HEAD', 'OPTIONS'], // Add OPTIONS
           accessControlAllowOrigins: ['*'],
           accessControlMaxAge: Duration.seconds(600),
           originOverride: false,

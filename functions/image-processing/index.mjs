@@ -11,8 +11,26 @@ const TRANSFORMED_IMAGE_CACHE_TTL = process.env.transformedImageCacheTTL;
 const MAX_IMAGE_SIZE = parseInt(process.env.maxImageSize);
 
 export const handler = async (event) => {
-    // Validate if this is a GET request
-    if (!event.requestContext || !event.requestContext.http || !(event.requestContext.http.method === 'GET')) return sendError(400, 'Only GET method is supported', event);
+    const method = event?.requestContext?.http?.method;
+
+    // Handle CORS preflight (OPTIONS)
+    if (method === 'OPTIONS') {
+        return {
+            statusCode: 204,
+            headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET,HEAD,OPTIONS',
+                'Access-Control-Allow-Headers': '*',
+                'Access-Control-Max-Age': '600',
+            },
+            body: '',
+        };
+    }
+
+    // Reject anything that's not GET
+    if (method !== 'GET') {
+        return sendError(405, 'Only GET and OPTIONS methods are supported');
+    }
     // An example of expected path is /images/rio/1.jpeg/format=auto,width=100 or /images/rio/1.jpeg/original where /images/rio/1.jpeg is the path of the original image
     var imagePathArray = event.requestContext.http.path.split('/');
     // get the requested image operations
@@ -37,6 +55,19 @@ export const handler = async (event) => {
           return sendError(404, "The requested image does not exist", error);
         }
         return sendError(500, 'Error downloading original image', error);
+    }
+    // If requested image is a PDF, return it
+    if (contentType === 'application/pdf') {
+        const pdfBuffer = await originalImageBody;
+        return {
+            statusCode: 200,
+            body: Buffer.from(pdfBuffer).toString('base64'),
+            isBase64Encoded: true,
+            headers: {
+                'Content-Type': 'application/pdf',
+                'Cache-Control': TRANSFORMED_IMAGE_CACHE_TTL,
+            }
+        };
     }
     let transformedImage = Sharp(await originalImageBody, { failOn: 'none', animated: true });
     // Get image orientation to rotate if needed
@@ -122,7 +153,11 @@ export const handler = async (event) => {
         headers: {
             'Content-Type': contentType,
             'Cache-Control': TRANSFORMED_IMAGE_CACHE_TTL,
-            'Server-Timing': timingLog
+            'Server-Timing': timingLog,
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET,HEAD,OPTIONS',
+            'Access-Control-Allow-Headers': '*',
+            'Access-Control-Max-Age': '600'
         }
     };
 };
