@@ -149,6 +149,12 @@ export class ImageOptimizationStack extends Stack {
     // statements of the IAM policy to attach to Lambda
     var iamPolicyStatements = [s3ReadOriginalImagesPolicy];
 
+    // Import Sharp HEIC Lambda Layer by ARN
+    const sharpHeicLayer = lambda.LayerVersion.fromLayerVersionArn(
+      this,
+      'SharpHeicLayer',
+      'arn:aws:lambda:ap-southeast-1:accountid:layer:sharp-heic:1'
+    );
     // Create Lambda for image processing
     var lambdaProps = {
       runtime: lambda.Runtime.NODEJS_20_X,
@@ -158,6 +164,7 @@ export class ImageOptimizationStack extends Stack {
       memorySize: parseInt(LAMBDA_MEMORY),
       environment: lambdaEnv,
       logRetention: logs.RetentionDays.ONE_DAY,
+      layers: [sharpHeicLayer],
     };
     var imageProcessing = new lambda.Function(this, 'image-optimization', lambdaProps);
 

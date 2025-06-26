@@ -86,7 +86,8 @@ export const handler = async (event) => {
         // check if rotation is needed
         if (imageMetadata.orientation) transformedImage = transformedImage.rotate();
         // check if formatting is requested
-        if (contentType === 'image/heic' || originalImagePath.endsWith('.heic')) {
+        console.log(`S3 Content-Type: ${contentType}`);
+        if (contentType === 'image/heic' || originalImagePath.toLowerCase().endsWith('.heic') || contentType === 'application/octet-stream') {
             contentType = 'image/jpeg';
             transformedImage = transformedImage.toFormat('jpeg', { quality: 80 });
         } else if (operationsJSON['format']) {
