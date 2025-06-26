@@ -86,7 +86,10 @@ export const handler = async (event) => {
         // check if rotation is needed
         if (imageMetadata.orientation) transformedImage = transformedImage.rotate();
         // check if formatting is requested
-        if (operationsJSON['format']) {
+        if (contentType === 'image/heic' || originalImagePath.endsWith('.heic')) {
+            contentType = 'image/jpeg';
+            transformedImage = transformedImage.toFormat('jpeg', { quality: 80 });
+        } else if (operationsJSON['format']) {
             var isLossy = false;
             switch (operationsJSON['format']) {
                 case 'jpeg': contentType = 'image/jpeg'; isLossy = true; break;
