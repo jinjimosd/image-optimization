@@ -69,6 +69,20 @@ export const handler = async (event) => {
             }
         };
     }
+    if (contentType === 'image/svg+xml' && !operationsPrefix.includes('width') && !operationsPrefix.includes('format')) {
+        const svgBuffer = await originalImageBody;
+        return {
+            statusCode: 200,
+            body: Buffer.from(svgBuffer).toString('base64'),
+            isBase64Encoded: true,
+            headers: {
+                'Content-Type': 'image/svg+xml',
+                'Cache-Control': TRANSFORMED_IMAGE_CACHE_TTL,
+                'Access-Control-Allow-Origin': '*',
+            }
+        };
+    }
+
     let transformedImage = Sharp(await originalImageBody, { failOn: 'none', animated: true });
     // Get image orientation to rotate if needed
     const imageMetadata = await transformedImage.metadata();
@@ -104,10 +118,9 @@ export const handler = async (event) => {
                 transformedImage = transformedImage.toFormat(operationsJSON['format'], {
                     quality: parseInt(operationsJSON['quality']),
                 });
-            } else transformedImage = transformedImage.toFormat(operationsJSON['format']);
-        } else {
-            /// If not format is precised, Sharp converts svg to png by default https://github.com/aws-samples/image-optimization/issues/48
-            if (contentType === 'image/svg+xml') contentType = 'image/png';
+            } else {
+                transformedImage = transformedImage.toFormat(operationsJSON['format']);
+            }
         }
         transformedImage = await transformedImage.toBuffer();
     } catch (error) {
