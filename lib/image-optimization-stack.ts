@@ -13,6 +13,8 @@ import { createHash } from 'crypto';
 var STORE_TRANSFORMED_IMAGES = 'true';
 // Parameters of S3 bucket where original images are stored
 var S3_IMAGE_BUCKET_NAME: string;
+
+var SHARP_HEIC_LAYER_ARN: string;
 // CloudFront parameters
 var CLOUDFRONT_ORIGIN_SHIELD_REGION = getOriginShieldRegion(process.env.AWS_REGION || process.env.CDK_DEFAULT_REGION || 'us-east-1');
 var CLOUDFRONT_CORS_ENABLED = 'true';
@@ -39,6 +41,7 @@ type ImageDeliveryCacheBehaviorConfig = {
 
 type LambdaEnv = {
   originalImageBucketName: string,
+  sharpHeicLayerArn: string,
   transformedImageBucketName?: any;
   transformedImageCacheTTL: string,
   maxImageSize: string,
@@ -53,6 +56,7 @@ export class ImageOptimizationStack extends Stack {
     S3_TRANSFORMED_IMAGE_EXPIRATION_DURATION = this.node.tryGetContext('S3_TRANSFORMED_IMAGE_EXPIRATION_DURATION') || S3_TRANSFORMED_IMAGE_EXPIRATION_DURATION;
     S3_TRANSFORMED_IMAGE_CACHE_TTL = this.node.tryGetContext('S3_TRANSFORMED_IMAGE_CACHE_TTL') || S3_TRANSFORMED_IMAGE_CACHE_TTL;
     S3_IMAGE_BUCKET_NAME = this.node.tryGetContext('S3_IMAGE_BUCKET_NAME') || S3_IMAGE_BUCKET_NAME;
+    SHARP_HEIC_LAYER_ARN = this.node.tryGetContext('SHARP_HEIC_LAYER_ARN') || SHARP_HEIC_LAYER_ARN;
     CLOUDFRONT_ORIGIN_SHIELD_REGION = this.node.tryGetContext('CLOUDFRONT_ORIGIN_SHIELD_REGION') || CLOUDFRONT_ORIGIN_SHIELD_REGION;
     CLOUDFRONT_CORS_ENABLED = this.node.tryGetContext('CLOUDFRONT_CORS_ENABLED') || CLOUDFRONT_CORS_ENABLED;
     LAMBDA_MEMORY = this.node.tryGetContext('LAMBDA_MEMORY') || LAMBDA_MEMORY;
@@ -135,6 +139,7 @@ export class ImageOptimizationStack extends Stack {
     // prepare env variable for Lambda 
     var lambdaEnv: LambdaEnv = {
       originalImageBucketName: originalImageBucket.bucketName,
+      sharpHeicLayerArn: SHARP_HEIC_LAYER_ARN,
       transformedImageCacheTTL: S3_TRANSFORMED_IMAGE_CACHE_TTL,
       maxImageSize: MAX_IMAGE_SIZE,
     };
@@ -153,7 +158,7 @@ export class ImageOptimizationStack extends Stack {
     const sharpHeicLayer = lambda.LayerVersion.fromLayerVersionArn(
       this,
       'SharpHeicLayer',
-      'arn:aws:lambda:ap-southeast-1:accountid:layer:sharp-heic:1'
+      SHARP_HEIC_LAYER_ARN
     );
     // Create Lambda for image processing
     var lambdaProps = {
